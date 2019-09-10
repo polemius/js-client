@@ -7,7 +7,7 @@ const Headers = require('node-fetch').Headers
 const camelCase = require('lodash.camelcase')
 const { JSONHTTPError, TextHTTPError } = require('micro-api-client')
 const debug = require('debug')('netlify:open-api')
-const { existy, sleep, unixNow } = require('./util')
+const { sleep, unixNow } = require('./util')
 const isStream = require('is-stream')
 
 exports.methods = require('./shape-swagger')
@@ -27,7 +27,7 @@ exports.generateMethod = method => {
     // Path parameters
     Object.values(method.parameters.path).forEach(param => {
       const val = params[param.name] || params[camelCase(param.name)]
-      if (existy(val)) {
+      if (val != null) {
         path = path.replace(`{${param.name}}`, val)
         debug(`replacing {${param.name}} with ${val}`)
       } else if (param.required) {
@@ -39,7 +39,7 @@ exports.generateMethod = method => {
     let qs
     Object.values(method.parameters.query).forEach(param => {
       const val = params[param.name] || params[camelCase(param.name)]
-      if (existy(val)) {
+      if (val != null) {
         if (!qs) qs = {}
         qs[param.name] = val
       } else if (param.required) {
@@ -133,7 +133,7 @@ exports.generateMethod = method => {
           try {
             const rateLimitReset = response.headers.get('X-RateLimit-Reset')
             const resetTime = Number.parseInt(rateLimitReset)
-            if (!existy(resetTime)) {
+            if (resetTime == null) {
               debug('Issue getting resetTime: %O', resetTime)
               throw new Error('Header missing reset time')
             }

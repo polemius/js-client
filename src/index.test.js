@@ -5,7 +5,7 @@ const NetlifyAPI = require('./index')
 const body = promisify(require('body'))
 const fromString = require('from2-string')
 const { TextHTTPError } = require('micro-api-client')
-const { existy, unixNow } = require('./open-api/util')
+const { unixNow } = require('./open-api/util')
 
 const createServer = handler => {
   const s = http.createServer(handler)
@@ -251,7 +251,7 @@ test.serial('test rate-limiting', async t => {
 
   try {
     server = createServer(async (req, res) => {
-      if (!existy(retryAt)) {
+      if (retryAt == null) {
         retryAt = unixNow() + randomInt(1, 5) //ms
 
         requestRateLimit(res, retryAt)
