@@ -5,7 +5,7 @@ const NetlifyAPI = require('./index')
 const body = promisify(require('body'))
 const fromString = require('from2-string')
 const { TextHTTPError } = require('micro-api-client')
-const { existy, unixNow } = require('./open-api/util')
+const { existy } = require('./open-api/util')
 
 const createServer = handler => {
   const s = http.createServer(handler)
@@ -85,7 +85,7 @@ test.serial('path parameter assignment', async t => {
         await client.createHookBySiteId(/* missing args */)
       },
       {
-        message: 'Missing required param site_id'
+        message: "Missing required query variable 'site_id'"
       }
     )
     const response = await client.createHookBySiteId({ siteId: 'Site123' })
@@ -251,12 +251,13 @@ test.serial('test rate-limiting', async t => {
 
   try {
     server = createServer(async (req, res) => {
+      const now = unixNow()
+
       if (!existy(retryAt)) {
-        retryAt = unixNow() + randomInt(1, 5) //ms
+        retryAt = now + randomInt(1, 5) //ms
 
         requestRateLimit(res, retryAt)
       } else {
-        const now = unixNow()
         const rateLimitFinished = now >= retryAt
 
         if (rateLimitFinished) {
@@ -281,3 +282,5 @@ test.serial('test rate-limiting', async t => {
 
   await server.close()
 })
+
+const unixNow = () => Math.floor(Date.now() / 1000)

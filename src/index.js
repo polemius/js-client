@@ -1,13 +1,16 @@
 const set = require('lodash.set')
 const get = require('lodash.get')
 const dfn = require('@netlify/open-api')
-const { methods, generateMethod } = require('./open-api')
+const { addMethods } = require('./methods')
+const methods = require('./open-api/shape-swagger')
 const pWaitFor = require('p-wait-for')
 const deploy = require('./deploy')
 const debug = require('debug')('netlify')
 
 class NetlifyAPI {
   constructor(accessToken, opts) {
+    addMethods(this)
+
     // variadic arguments
     if (typeof accessToken === 'object') {
       opts = accessToken
@@ -33,7 +36,7 @@ class NetlifyAPI {
     this.scheme = opts.scheme
     this.host = opts.host
     this.pathPrefix = opts.pathPrefix
-    this.globalParams = Object.assign({}, opts.globalParams)
+    this.globalParams = opts.globalParams
 
     if (accessToken) {
       debug('Setting access token')
@@ -108,12 +111,6 @@ class NetlifyAPI {
     return await deploy(this, siteId, buildDir, opts)
   }
 }
-
-methods.forEach(method => {
-  // Generate open-api methods
-  /* {param1, param2, body, ... }, [opts] */
-  NetlifyAPI.prototype[method.operationId] = generateMethod(method)
-})
 
 module.exports = NetlifyAPI
 
