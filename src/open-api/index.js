@@ -10,10 +10,8 @@ const debug = require('debug')('netlify:open-api')
 const { existy, sleep, unixNow } = require('./util')
 const isStream = require('is-stream')
 
-exports.methods = require('./shape-swagger')
-
 // open-api 2.0
-exports.generateMethod = method => {
+exports.generateOperation = operation => {
   //
   // Warning: Expects `this`. These methods expect to live on the client prototype
   //
@@ -21,11 +19,11 @@ exports.generateMethod = method => {
     opts = Object.assign({}, opts)
     params = Object.assign({}, this.globalParams, params)
 
-    let path = this.basePath + method.path
+    let path = this.basePath + operation.path
     debug(`path template: ${path}`)
 
     // Path parameters
-    Object.values(method.parameters.path).forEach(param => {
+    Object.values(operation.parameters.path).forEach(param => {
       const val = params[param.name] || params[camelCase(param.name)]
       if (existy(val)) {
         path = path.replace(`{${param.name}}`, val)
@@ -37,7 +35,7 @@ exports.generateMethod = method => {
 
     // qs parameters
     let qs
-    Object.values(method.parameters.query).forEach(param => {
+    Object.values(operation.parameters.query).forEach(param => {
       const val = params[param.name] || params[camelCase(param.name)]
       if (existy(val)) {
         if (!qs) qs = {}
@@ -56,7 +54,7 @@ exports.generateMethod = method => {
     let bodyType = 'json'
     if (params.body) {
       body = params.body
-      Object.values(method.parameters.body).forEach(param => {
+      Object.values(operation.parameters.body).forEach(param => {
         const type = get(param, 'schema.format')
         if (type === 'binary') {
           bodyType = 'binary'
@@ -84,8 +82,8 @@ exports.generateMethod = method => {
     debug('specialHeaders: %O', specialHeaders)
 
     opts.headers = new Headers(Object.assign({}, this.defaultHeaders, specialHeaders, opts.headers))
-    opts.method = method.verb.toUpperCase()
-    debug(`method: ${opts.method}`)
+    opts.method = operation.verb.toUpperCase()
+    debug(`HTTP method: ${opts.method}`)
 
     // TODO: Consider using micro-api-client when it supports node-fetch
 

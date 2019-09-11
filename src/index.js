@@ -1,7 +1,8 @@
 const set = require('lodash.set')
 const get = require('lodash.get')
 const dfn = require('@netlify/open-api')
-const { methods, generateMethod } = require('./open-api')
+const { generateOperation } = require('./open-api')
+const { getOperations } = require('./operations')
 const pWaitFor = require('p-wait-for')
 const deploy = require('./deploy')
 const debug = require('debug')('netlify')
@@ -109,12 +110,13 @@ class NetlifyAPI {
   }
 }
 
-methods.forEach(method => {
+const operations = getOperations()
+operations.forEach(operation => {
   // Generate open-api methods
   /* {param1, param2, body, ... }, [opts] */
-  NetlifyAPI.prototype[method.operationId] = generateMethod(method)
+  NetlifyAPI.prototype[operation.operationId] = generateOperation(operation)
 })
 
 module.exports = NetlifyAPI
 
-module.exports.methods = methods
+module.exports.methods = operations
