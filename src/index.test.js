@@ -180,6 +180,18 @@ test('Can specify JSON request body as an object', async t => {
   t.true(scope.isDone())
 })
 
+test.skip('Can specify JSON request body as a function', async t => {
+  const body = { test: 'test' }
+  const scope = nock(origin)
+    .post(`${pathPrefix}/accounts`, body, { 'Content-Type': 'application/json' })
+    .reply(200)
+
+  const client = getClient()
+  await client.createAccount({ body: () => body })
+
+  t.true(scope.isDone())
+})
+
 test('Can specify binary request body as a stream', async t => {
   const deploy_id = '1'
   const path = 'testPath'
@@ -191,6 +203,22 @@ test('Can specify binary request body as a stream', async t => {
 
   const client = getClient()
   const response = await client.uploadDeployFile({ deploy_id, path, body: fromString(body) })
+
+  t.deepEqual(response, expectedResponse)
+  t.true(scope.isDone())
+})
+
+test('Can specify binary request body as a function', async t => {
+  const deploy_id = '1'
+  const path = 'testPath'
+  const body = 'test'
+  const expectedResponse = { test: 'test' }
+  const scope = nock(origin)
+    .put(`${pathPrefix}/deploys/${deploy_id}/files/${path}`, body, { 'Content-Type': 'application/octet-stream' })
+    .reply(200, expectedResponse)
+
+  const client = getClient()
+  const response = await client.uploadDeployFile({ deploy_id, path, body: () => fromString(body) })
 
   t.deepEqual(response, expectedResponse)
   t.true(scope.isDone())
@@ -261,7 +289,21 @@ test('Can parse JSON responses', async t => {
   t.true(scope.isDone())
 })
 
-test('Handle error responses', async t => {
+test('Can parse text responses', async t => {
+  const account_id = '11'
+  const expectedResponse = 'test'
+  const scope = nock(origin)
+    .get(`${pathPrefix}/accounts/${account_id}`)
+    .reply(200, expectedResponse)
+
+  const client = getClient()
+  const response = await client.getAccount({ account_id })
+
+  t.deepEqual(response, expectedResponse)
+  t.true(scope.isDone())
+})
+
+test('Handle error JSON responses', async t => {
   const account_id = '7'
   const status = 404
   const scope = nock(origin)
@@ -274,6 +316,25 @@ test('Handle error responses', async t => {
   t.is(error.status, status)
   t.is(error.message, 'Not Found')
   t.is(error.data, '')
+  t.true(error instanceof TextHTTPError)
+  t.true(error.stack !== undefined)
+  t.true(scope.isDone())
+})
+
+test('Handle error text responses', async t => {
+  const account_id = '12'
+  const status = 404
+  const expectedResponse = 'test'
+  const scope = nock(origin)
+    .get(`${pathPrefix}/accounts/${account_id}`)
+    .reply(status, expectedResponse)
+
+  const client = getClient()
+  const error = await t.throwsAsync(client.getAccount({ account_id }))
+
+  t.is(error.status, status)
+  t.is(error.message, 'Not Found')
+  t.is(error.data, expectedResponse)
   t.true(error instanceof TextHTTPError)
   t.true(error.stack !== undefined)
   t.true(scope.isDone())
@@ -348,21 +409,58 @@ test('Can timeout access token polling', async t => {
 })
 
 test('Handles API rate limiting', async t => {
+  const account_id = '8'
   const retryAtMs = Date.now() + TEST_RATE_LIMIT_DELAY
   const retryAt = Math.ceil(retryAtMs / SECS_TO_MSECS)
   const expectedResponse = { test: 'test' }
   const scope = nock(origin)
-    .get(`${pathPrefix}/accounts`)
+    .get(`${pathPrefix}/accounts/${account_id}`)
     .reply(429, { retryAt }, { 'X-RateLimit-Reset': retryAt })
-    .get(`${pathPrefix}/accounts`)
+    .get(`${pathPrefix}/accounts/${account_id}`)
     .reply(200, expectedResponse)
 
   const client = getClient()
-  const response = await client.listAccountsForUser()
+  const response = await client.getAccount({ account_id })
 
   t.true(Date.now() >= retryAtMs)
   t.deepEqual(response, expectedResponse)
   t.true(scope.isDone())
+})
+
+test('Handles API rate limiting when date is in the past', async t => {
+  const account_id = '9'
+  const expectedResponse = { test: 'test' }
+  const scope = nock(origin)
+    .get(`${pathPrefix}/accounts/${account_id}`)
+    .reply(429, { retryAt: 0 }, { 'X-RateLimit-Reset': 0 })
+    .get(`${pathPrefix}/accounts/${account_id}`)
+    .reply(200, expectedResponse)
+
+  const client = getClient()
+  await client.getAccount({ account_id })
+
+  t.true(scope.isDone())
+})
+
+test('Gives up retrying on API rate limiting after a timeout', async t => {
+  const account_id = '10'
+  const retryAt = Math.ceil(Date.now() / SECS_TO_MSECS)
+  const expectedResponse = { test: 'test' }
+  const scope = nock(origin)
+    .get(`${pathPrefix}/accounts/${account_id}`)
+    .times(20)
+    .reply(429, { retryAt }, { 'X-RateLimit-Reset': retryAt })
+    .get(`${pathPrefix}/accounts/${account_id}`)
+    .reply(200, expectedResponse)
+
+  const client = getClient()
+  const error = await t.throwsAsync(client.getAccount({ account_id }))
+
+  t.is(error.status, 429)
+  t.is(error.message, 'Too Many Requests')
+  t.true(Number.isInteger(error.json.retryAt))
+
+  t.false(scope.isDone())
 })
 
 const TEST_RATE_LIMIT_DELAY = 5e3
