@@ -117,6 +117,18 @@ test('Can use camelcase parameters in path variables', async t => {
   t.true(scope.isDone())
 })
 
+test('Can use global parameters in path variables', async t => {
+  const account_id = '3'
+  const scope = nock(origin)
+    .get(`${pathPrefix}/accounts/${account_id}`)
+    .reply(200)
+
+  const client = getClient({ globalParams: { account_id } })
+  await client.getAccount()
+
+  t.true(scope.isDone())
+})
+
 test('Can use underscored parameters in query variables', async t => {
   const client_id = '1'
   const scope = nock(origin)
@@ -143,24 +155,23 @@ test('Can use camelcase parameters in query variables', async t => {
   t.true(scope.isDone())
 })
 
-test('Can parse JSON responses', async t => {
-  const account_id = '3'
-  const expectedResponse = { test: 'test' }
+test('Can use global parameters in query variables', async t => {
+  const client_id = '3'
   const scope = nock(origin)
-    .get(`${pathPrefix}/accounts/${account_id}`)
-    .reply(200, expectedResponse)
+    .post(`${pathPrefix}/oauth/tickets`)
+    .query({ client_id })
+    .reply(200)
 
-  const client = getClient()
-  const response = await client.getAccount({ account_id })
+  const client = getClient({ globalParams: { client_id } })
+  await client.createTicket()
 
-  t.deepEqual(response, expectedResponse)
   t.true(scope.isDone())
 })
 
 test('Can specify JSON request body as an object', async t => {
   const body = { test: 'test' }
   const scope = nock(origin)
-    .post(`${pathPrefix}/accounts`, body)
+    .post(`${pathPrefix}/accounts`, body, { 'Content-Type': 'application/json' })
     .reply(200)
 
   const client = getClient()
@@ -175,13 +186,25 @@ test('Can specify binary request body as a stream', async t => {
   const body = 'test'
   const expectedResponse = { test: 'test' }
   const scope = nock(origin)
-    .put(`${pathPrefix}/deploys/${deploy_id}/files/${path}`, body)
+    .put(`${pathPrefix}/deploys/${deploy_id}/files/${path}`, body, { 'Content-Type': 'application/octet-stream' })
     .reply(200, expectedResponse)
 
   const client = getClient()
   const response = await client.uploadDeployFile({ deploy_id, path, body: fromString(body) })
 
   t.deepEqual(response, expectedResponse)
+  t.true(scope.isDone())
+})
+
+test('Can use global parameters in request body', async t => {
+  const body = { test: 'test' }
+  const scope = nock(origin)
+    .post(`${pathPrefix}/accounts`, body)
+    .reply(200)
+
+  const client = getClient({ globalParams: { body } })
+  await client.createAccount()
+
   t.true(scope.isDone())
 })
 
@@ -197,8 +220,49 @@ test('Validates required path parameters', async t => {
   t.false(scope.isDone())
 })
 
-test('Handle error responses', async t => {
+test('Validates required query parameters', async t => {
+  const account_slug = '1'
+  const scope = nock(origin)
+    .post(`${pathPrefix}/${account_slug}/members`)
+    .reply(200)
+
+  const client = getClient()
+  await t.throwsAsync(client.addMemberToAccount({ account_slug }), 'Missing required param email')
+
+  t.false(scope.isDone())
+})
+
+test('Can set request headers', async t => {
+  const headerName = 'test'
+  const headerValue = 'test'
   const account_id = '5'
+  const scope = nock(origin)
+    .get(`${pathPrefix}/accounts/${account_id}`)
+    .matchHeader(headerName, headerValue)
+    .reply(200)
+
+  const client = getClient()
+  await client.getAccount({ account_id }, { headers: { [headerName]: headerValue } })
+
+  t.true(scope.isDone())
+})
+
+test('Can parse JSON responses', async t => {
+  const account_id = '6'
+  const expectedResponse = { test: 'test' }
+  const scope = nock(origin)
+    .get(`${pathPrefix}/accounts/${account_id}`)
+    .reply(200, expectedResponse)
+
+  const client = getClient()
+  const response = await client.getAccount({ account_id })
+
+  t.deepEqual(response, expectedResponse)
+  t.true(scope.isDone())
+})
+
+test('Handle error responses', async t => {
+  const account_id = '7'
   const status = 404
   const scope = nock(origin)
     .get(`${pathPrefix}/accounts/${account_id}`)
