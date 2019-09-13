@@ -209,7 +209,7 @@ test('Can specify binary request body as a stream', async t => {
 })
 
 test('Can specify binary request body as a function', async t => {
-  const deploy_id = '1'
+  const deploy_id = '2'
   const path = 'testPath'
   const body = 'test'
   const expectedResponse = { test: 'test' }
@@ -290,7 +290,7 @@ test('Can parse JSON responses', async t => {
 })
 
 test('Can parse text responses', async t => {
-  const account_id = '11'
+  const account_id = '7'
   const expectedResponse = 'test'
   const scope = nock(origin)
     .get(`${pathPrefix}/accounts/${account_id}`)
@@ -304,7 +304,7 @@ test('Can parse text responses', async t => {
 })
 
 test('Handle error JSON responses', async t => {
-  const account_id = '7'
+  const account_id = '8'
   const status = 404
   const scope = nock(origin)
     .get(`${pathPrefix}/accounts/${account_id}`)
@@ -322,7 +322,7 @@ test('Handle error JSON responses', async t => {
 })
 
 test('Handle error text responses', async t => {
-  const account_id = '12'
+  const account_id = '9'
   const status = 404
   const expectedResponse = 'test'
   const scope = nock(origin)
@@ -341,7 +341,7 @@ test('Handle error text responses', async t => {
 })
 
 test('Handle network errors', async t => {
-  const account_id = '13'
+  const account_id = '10'
   const expectedResponse = 'test'
   const url = `${pathPrefix}/accounts/${account_id}`
   const scope = nock(origin)
@@ -428,7 +428,7 @@ test('Can timeout access token polling', async t => {
 })
 
 test('Handles API rate limiting', async t => {
-  const account_id = '8'
+  const account_id = '11'
   const retryAtMs = Date.now() + TEST_RATE_LIMIT_DELAY
   const retryAt = Math.ceil(retryAtMs / SECS_TO_MSECS)
   const expectedResponse = { test: 'test' }
@@ -447,7 +447,7 @@ test('Handles API rate limiting', async t => {
 })
 
 test('Handles API rate limiting when date is in the past', async t => {
-  const account_id = '9'
+  const account_id = '12'
   const expectedResponse = { test: 'test' }
   const scope = nock(origin)
     .get(`${pathPrefix}/accounts/${account_id}`)
@@ -462,7 +462,7 @@ test('Handles API rate limiting when date is in the past', async t => {
 })
 
 test('Handles API rate limiting when X-RateLimit-Reset is missing', async t => {
-  const account_id = '10'
+  const account_id = '13'
   const expectedResponse = { test: 'test' }
   const retryAt = 'invalid'
   const scope = nock(origin)
@@ -478,7 +478,7 @@ test('Handles API rate limiting when X-RateLimit-Reset is missing', async t => {
 })
 
 test('Gives up retrying on API rate limiting after a timeout', async t => {
-  const account_id = '11'
+  const account_id = '14'
   const retryAt = Math.ceil(Date.now() / SECS_TO_MSECS)
   const expectedResponse = { test: 'test' }
   const scope = nock(origin)
