@@ -442,8 +442,24 @@ test('Handles API rate limiting when date is in the past', async t => {
   t.true(scope.isDone())
 })
 
-test('Gives up retrying on API rate limiting after a timeout', async t => {
+test('Handles API rate limiting when X-RateLimit-Reset is missing', async t => {
   const account_id = '10'
+  const expectedResponse = { test: 'test' }
+  const retryAt = 'invalid'
+  const scope = nock(origin)
+    .get(`${pathPrefix}/accounts/${account_id}`)
+    .reply(429, { retryAt })
+    .get(`${pathPrefix}/accounts/${account_id}`)
+    .reply(200, expectedResponse)
+
+  const client = getClient()
+  await client.getAccount({ account_id })
+
+  t.true(scope.isDone())
+})
+
+test('Gives up retrying on API rate limiting after a timeout', async t => {
+  const account_id = '11'
   const retryAt = Math.ceil(Date.now() / SECS_TO_MSECS)
   const expectedResponse = { test: 'test' }
   const scope = nock(origin)
