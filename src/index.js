@@ -19,8 +19,7 @@ class NetlifyAPI {
         userAgent: 'netlify/js-client',
         scheme: dfn.schemes[0],
         host: dfn.host,
-        pathPrefix: dfn.basePath,
-        accessToken
+        pathPrefix: dfn.basePath
       },
       opts
     )
@@ -35,7 +34,11 @@ class NetlifyAPI {
     this.host = opts.host
     this.pathPrefix = opts.pathPrefix
     this.globalParams = Object.assign({}, opts.globalParams)
-    this.accessToken = opts.accessToken
+
+    if (accessToken) {
+      debug('Setting access token')
+      this.accessToken = accessToken
+    }
   }
 
   get accessToken() {

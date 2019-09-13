@@ -12,8 +12,8 @@ const host = `${domain}:${port}`
 const origin = `${scheme}://${host}`
 const accessToken = 'testAccessToken'
 
-const getClient = function(opts) {
-  return new NetlifyAPI(Object.assign({ scheme, host, pathPrefix, accessToken }, opts))
+const getClient = function(opts = {}) {
+  return new NetlifyAPI(opts.accessToken, Object.assign({ scheme, host, pathPrefix }, opts))
 }
 
 test('Default options', async t => {
@@ -75,7 +75,8 @@ test('Can set|get globalParams', async t => {
 })
 
 test('Can set|get access token', async t => {
-  const client = getClient({ accessToken })
+  const client = getClient()
+  client.accessToken = accessToken
   t.is(client.accessToken, accessToken)
   t.is(client.defaultHeaders.Authorization, `Bearer ${accessToken}`)
 
@@ -89,7 +90,12 @@ test('Can set|get access token', async t => {
 })
 
 test('Can specify access token as the first argument', async t => {
-  const client = getClient(accessToken, {})
+  const client = new NetlifyAPI(accessToken, {})
+  t.is(client.accessToken, accessToken)
+})
+
+test.skip('Can specify access token as an option', async t => {
+  const client = new NetlifyAPI({ accessToken })
   t.is(client.accessToken, accessToken)
 })
 
