@@ -340,6 +340,25 @@ test('Handle error text responses', async t => {
   t.true(scope.isDone())
 })
 
+test('Handle network errors', async t => {
+  const account_id = '13'
+  const expectedResponse = 'test'
+  const url = `${pathPrefix}/accounts/${account_id}`
+  const scope = nock(origin)
+    .get(url)
+    .replyWithError(expectedResponse)
+
+  const client = getClient()
+  const error = await t.throwsAsync(client.getAccount({ account_id }))
+
+  t.true(error instanceof Error)
+  t.is(error.name, 'FetchError')
+  t.true(error.message.includes(expectedResponse))
+  t.is(error.url, `${origin}${url}`)
+  t.is(error.data.method, 'GET')
+  t.true(scope.isDone())
+})
+
 test('Can get an access token from a ticket', async t => {
   const id = '1'
   const access_token = 'test'
